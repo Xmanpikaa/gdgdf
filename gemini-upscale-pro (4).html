@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UpscaleAI Pro — Gemini Powered</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Google Generative AI SDK -->
+<script type="importmap">
+{
+  "imports": {
+    "@google/generative-ai": "https://esm.run/@google/generative-ai"
+  }
+}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #07070F; --surface: #0F0F1A; --surface2: #161626;
+  --border: #1E1E35; --accent: #7C3AED; --accent2: #A855F7;
+  --accent-glow: rgba(124,58,237,0.35); --text: #E8E8F0;
+  --muted: #6B6B8A; --success: #10B981; --warn: #F59E0B; --danger: #EF4444;
+}
+html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; overflow-x: hidden; }
+body::before { content:''; position:fixed; top:-200px; left:50%; transform:translateX(-50%); width:800px; height:600px; background:radial-gradient(ellipse,rgba(124,58,237,0.10) 0%,transparent 70%); pointer-events:none; z-index:0; }
+.app { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 20px 60px; }
+
+/* Header */
+header { display:flex; align-items:center; justify-content:space-between; padding:20px 0 24px; border-bottom:1px solid var(--border); margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:34px; height:34px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+.logo-text { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:17px; }
+.logo-badge { font-size:10px; font-weight:700; letter-spacing:1px; background:linear-gradient(90deg,var(--accent),var(--accent2)); color:white; padding:2px 7px; border-radius:20px; }
+
+/* API Box */
+.api-box { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:8px 12px; transition:border-color 0.3s; }
+.api-box.ok   { border-color:rgba(16,185,129,0.5); }
+.api-box.err  { border-color:rgba(239,68,68,0.5); }
+.api-box.busy { border-color:rgba(245,158,11,0.5); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:all 0.3s; }
+.api-box.ok   .status-dot { background:var(--success); box-shadow:0 0 8px var(--success); }
+.api-box.err  .status-dot { background:var(--danger); box-shadow:0 0 8px var(--danger); }
+.api-box.busy .status-dot { background:var(--warn); box-shadow:0 0 8px var(--warn); animation:blink .6s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.api-input { background:transparent; border:none; color:var(--text); font-family:monospace; font-size:12px; width:210px; outline:none; }
+.api-input::placeholder { color:var(--muted); }
+.status-txt { font-size:11px; color:var(--muted); white-space:nowrap; }
+.api-box.ok  .status-txt { color:var(--success); }
+.api-box.err .status-txt { color:var(--danger); }
+.btn-connect { padding:5px 12px; border-radius:7px; border:1px solid var(--accent); background:rgba(124,58,237,0.15); color:var(--accent2); font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.btn-connect:hover:not(:disabled) { background:var(--accent); color:white; }
+.btn-connect:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Settings */
+.settings-bar { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 18px; margin-bottom:24px; flex-wrap:wrap; }
+.setting-label { color:var(--muted); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; }
+.pill-group { display:flex; gap:4px; }
+.pill { padding:5px 11px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-weight:500; cursor:pointer; transition:all .18s; }
+.pill:hover { border-color:var(--accent); color:var(--text); }
+.pill.active { background:var(--accent); border-color:var(--accent); color:white; box-shadow:0 0 10px var(--accent-glow); }
+.sep { width:1px; height:26px; background:var(--border); margin:0 2px; }
+.setting-select { background:var(--surface2); border:1px solid var(--border); border-radius:7px; padding:5px 9px; color:var(--text); font-size:12px; outline:none; cursor:pointer; }
+
+/* Upload */
+.upload-zone { border:2px dashed var(--border); border-radius:18px; padding:48px 24px; text-align:center; cursor:pointer; transition:all .25s; background:var(--surface); margin-bottom:24px; }
+.upload-zone:hover, .upload-zone.drag-over { border-color:var(--accent); background:rgba(124,58,237,0.05); }
+.upload-icon { font-size:40px; margin-bottom:12px; display:block; opacity:.7; }
+.upload-title { font-family:'Space Grotesk',sans-serif; font-size:19px; font-weight:600; margin-bottom:7px; }
+.upload-sub { color:var(--muted); font-size:12px; margin-bottom:16px; }
+.upload-formats { display:flex; justify-content:center; gap:6px; flex-wrap:wrap; }
+.format-tag { font-size:10px; font-weight:600; padding:2px 8px; border:1px solid var(--border); border-radius:5px; color:var(--muted); }
+#fileInput { display:none; }
+
+/* Workspace */
+.workspace { display:none; }
+.workspace.visible { display:block; }
+.compare-wrap { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+@media(max-width:640px){ .compare-wrap { grid-template-columns:1fr; } }
+.img-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+.panel-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); }
+.panel-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+.panel-stats { display:flex; gap:6px; }
+.stat-chip { font-size:10px; font-weight:500; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 6px; color:var(--muted); }
+.stat-chip.green  { color:var(--success); border-color:rgba(16,185,129,.3); background:rgba(16,185,129,.08); }
+.stat-chip.purple { color:var(--accent2); border-color:rgba(168,85,247,.3); background:rgba(168,85,247,.08); }
+.img-container { position:relative; min-height:240px; display:flex; align-items:center; justify-content:center; background:repeating-conic-gradient(#111120 0% 25%,#0c0c18 0% 50%) 0 0/18px 18px; overflow:hidden; }
+.img-container img { max-width:100%; max-height:360px; display:block; }
+.img-container.pixelated img { image-rendering:pixelated; }
+.empty-msg { color:var(--muted); font-size:12px; text-align:center; padding:36px 16px; line-height:1.6; }
+.proc-overlay { position:absolute; inset:0; background:rgba(7,7,15,.88); display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; z-index:10; }
+.proc-overlay.active { display:flex; }
+.spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.proc-step { color:var(--text); font-size:13px; font-weight:500; }
+.proc-sub  { color:var(--muted); font-size:11px; }
+
+/* Buttons */
+.action-bar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.btn { display:inline-flex; align-items:center; gap:7px; padding:10px 20px; border-radius:9px; border:none; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; box-shadow:0 4px 18px var(--accent-glow); }
+.btn-primary:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 6px 24px var(--accent-glow); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+.btn-secondary { background:var(--surface); border:1px solid var(--border); color:var(--text); }
+.btn-secondary:hover:not(:disabled) { border-color:var(--accent); background:rgba(124,58,237,.08); }
+.btn-secondary:disabled { opacity:.4; cursor:not-allowed; }
+.btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted); }
+.btn-ghost:hover { color:var(--text); border-color:var(--muted); }
+
+/* Analysis */
+.analysis-panel { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px; display:none; }
+.analysis-panel.visible { display:block; }
+.analysis-title { font-family:'Space Grotesk',sans-serif; font-size:12px; font-weight:700; color:var(--accent2); margin-bottom:12px; display:flex; align-items:center; gap:7px; text-transform:uppercase; letter-spacing:.8px; }
+.analysis-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; margin-bottom:12px; }
+.analysis-item { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:11px; }
+.ai-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px; }
+.ai-value { font-size:13px; font-weight:600; }
+.ai-value.good { color:var(--success); }
+.ai-value.warn { color:var(--warn); }
+.ai-desc { font-size:12px; line-height:1.65; color:var(--muted); border-top:1px solid var(--border); padding-top:10px; }
+.quality-meter { display:flex; align-items:center; gap:7px; margin-top:5px; }
+.q-bar { flex:1; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+.q-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; transition:width 1s; }
+.q-val { font-size:10px; font-weight:700; color:var(--accent2); min-width:28px; text-align:right; }
+
+/* Log */
+.log-panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:none; }
+.log-panel.visible { display:block; }
+.log-header { padding:10px 14px; border-bottom:1px solid var(--border); font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; gap:7px; }
+.log-dot { width:5px; height:5px; border-radius:50%; background:var(--success); animation:blink 1.5s infinite; }
+.log-body { padding:10px 14px; max-height:140px; overflow-y:auto; }
+.log-entry { font-family:monospace; font-size:11px; color:var(--muted); padding:2px 0; display:flex; gap:10px; }
+.log-time { color:var(--accent); opacity:.7; }
+.log-msg.success { color:var(--success); }
+.log-msg.error   { color:var(--danger); }
+.log-msg.info    { color:var(--text); }
+
+/* Toast */
+.toast { position:fixed; bottom:24px; right:24px; background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:12px 18px; font-size:13px; font-weight:500; display:flex; align-items:center; gap:9px; transform:translateY(70px); opacity:0; transition:all .3s cubic-bezier(.34,1.56,.64,1); z-index:999; max-width:300px; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { border-color:rgba(16,185,129,.4); }
+.toast.error   { border-color:rgba(239,68,68,.4); }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">✦</div>
+      <span class="logo-text">UpscaleAI</span>
+      <span class="logo-badge">PRO</span>
+    </div>
+    <div class="api-box" id="apiBox">
+      <div class="status-dot"></div>
+      <input type="password" class="api-input" id="apiKey" placeholder="Paste Gemini API key here…" autocomplete="off">
+      <span class="status-txt" id="statusTxt">Not connected</span>
+      <button class="btn-connect" id="connectBtn" onclick="testConnection()">Connect</button>
+    </div>
+  </header>
+
+  <div class="settings-bar">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="setting-label">Scale</span>
+      <div class="pill-group" id="scaleGroup">
+        <button class="pill" onclick="setPill('scaleGroup',this,()=>state.scale=2)">2×</button>
+        <button class="pill active" onclick="setPill('scaleGroup',this,()=>state.scale=4)">4×</button>
+        <button class="pill" onclick="setPill('scaleGroup',this,()=>state.scale=8)">8×</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="setting-label">Mode</span>
+      <div class="pill-group" id="modeGroup">
+        <button class="pill active" onclick="setPill('modeGroup',this,()=>state.mode='auto')">Auto</button>
+        <button class="pill" onclick="setPill('modeGroup',this,()=>state.mode='photo')">Photo</button>
+        <button class="pill" onclick="setPill('modeGroup',this,()=>state.mode='design')">Design</button>
+        <button class="pill" onclick="setPill('modeGroup',this,()=>state.mode='illustration')">Illustration</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="setting-label">Output</span>
+      <select class="setting-select" id="outputFmt">
+        <option value="png">PNG</option>
+        <option value="webp">WebP</option>
+        <option value="jpeg">JPEG</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;margin-left:auto">
+      <span class="setting-label">Quality</span>
+      <div class="pill-group" id="qualGroup">
+        <button class="pill" onclick="setPill('qualGroup',this,()=>state.quality='fast')">Fast</button>
+        <button class="pill active" onclick="setPill('qualGroup',this,()=>state.quality='balanced')">Balanced</button>
+        <button class="pill" onclick="setPill('qualGroup',this,()=>state.quality='max')">Max</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="upload-zone" id="uploadZone"
+    onclick="document.getElementById('fileInput').click()"
+    ondragover="event.preventDefault();this.classList.add('drag-over')"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="handleDrop(event)">
+    <span class="upload-icon">⬆</span>
+    <div class="upload-title">Drop your image here</div>
+    <div class="upload-sub">or click to browse — PNG, JPEG, WebP, BMP up to 10 MB</div>
+    <div class="upload-formats">
+      <span class="format-tag">PNG</span><span class="format-tag">JPEG</span>
+      <span class="format-tag">WebP</span><span class="format-tag">BMP</span>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" onchange="loadFile(event)">
+
+  <div class="workspace" id="workspace">
+    <div class="action-bar">
+      <button class="btn btn-primary" id="upscaleBtn" onclick="startUpscale()" disabled>✦ Upscale with Gemini</button>
+      <button class="btn btn-secondary" id="analyzeBtn" onclick="analyzeOnly()" disabled>🔍 Analyze</button>
+      <button class="btn btn-ghost" id="dlBtn" onclick="downloadResult()" style="display:none">⬇ Download</button>
+      <button class="btn btn-ghost" onclick="resetApp()">↺ New Image</button>
+    </div>
+
+    <div class="compare-wrap">
+      <div class="img-panel">
+        <div class="panel-header">
+          <span class="panel-label">Original</span>
+          <div class="panel-stats" id="origStats"></div>
+        </div>
+        <div class="img-container pixelated">
+          <img id="origImg" src="" alt="Original">
+        </div>
+      </div>
+      <div class="img-panel">
+        <div class="panel-header">
+          <span class="panel-label">Enhanced</span>
+          <div class="panel-stats" id="resultStats"></div>
+        </div>
+        <div class="img-container" id="resultContainer">
+          <div class="empty-msg">Result will appear here</div>
+          <div class="proc-overlay" id="procOverlay">
+            <div class="spinner"></div>
+            <div class="proc-step" id="procStep">Analyzing…</div>
+            <div class="proc-sub"  id="procSub">Gemini Vision</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis-panel" id="analysisPanel">
+      <div class="analysis-title">✦ Gemini Analysis</div>
+      <div class="analysis-grid" id="analysisGrid"></div>
+      <div class="ai-desc" id="aiDesc"></div>
+    </div>
+
+    <div class="log-panel" id="logPanel">
+      <div class="log-header"><div class="log-dot"></div>Enhancement Log</div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span id="toastIcon"></span><span id="toastMsg"></span>
+</div>
+
+<script type="module">
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// ── State ──────────────────────────────────────────────
+const state = {
+  scale:4, mode:'auto', quality:'balanced',
+  origFile:null, origDataUrl:null, resultDataUrl:null,
+  origDims:{w:0,h:0}, connected:false, genAI:null, model:null
+};
+
+// ── Expose functions to global scope (onclick handlers) ──
+window.testConnection = testConnection;
+window.setPill        = setPill;
+window.handleDrop     = handleDrop;
+window.loadFile       = loadFile;
+window.startUpscale   = startUpscale;
+window.analyzeOnly    = analyzeOnly;
+window.downloadResult = downloadResult;
+window.resetApp       = resetApp;
+
+// ── Init: restore saved key ──────────────────────────────
+const saved = localStorage.getItem('gemini_key');
+if (saved) {
+  document.getElementById('apiKey').value = saved;
+  testConnection(true);
+}
+
+// ── Test connection using SDK ─────────────────────────────
+async function testConnection(silent = false) {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { setStatus('err','No key entered'); return; }
+
+  setStatus('busy','Testing…');
+  document.getElementById('connectBtn').disabled = true;
+
+  try {
+    const genAI = new GoogleGenerativeAI(key);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent('Reply with the single word: OK');
+    const text = result.response.text();
+
+    if (text) {
+      state.genAI = genAI;
+      state.model = model;
+      state.connected = true;
+      localStorage.setItem('gemini_key', key);
+      setStatus('ok','Connected ✓');
+      updateButtons();
+      if (!silent) showToast('Gemini connected!','success');
+    }
+  } catch(e) {
+    state.connected = false;
+    state.genAI = null; state.model = null;
+    const msg = e.message || '';
+    const label = msg.includes('API_KEY') || msg.includes('invalid') ? 'Invalid key'
+                : msg.includes('quota') || msg.includes('429')       ? 'Quota exceeded'
+                : msg.includes('network') || msg.includes('fetch')   ? 'Network error'
+                : 'Auth failed';
+    setStatus('err', label);
+    if (!silent) showToast(label + ' — ' + msg.slice(0,80), 'error');
+  }
+  document.getElementById('connectBtn').disabled = false;
+}
+
+function setStatus(type, txt) {
+  document.getElementById('apiBox').className = 'api-box ' + type;
+  document.getElementById('statusTxt').textContent = txt;
+  document.getElementById('connectBtn').textContent = type === 'ok' ? '✓ OK' : 'Connect';
+}
+
+function updateButtons() {
+  const ready = state.connected && !!state.origFile;
+  document.getElementById('upscaleBtn').disabled = !ready;
+  document.getElementById('analyzeBtn').disabled = !ready;
+}
+
+// ── Pills ─────────────────────────────────────────────────
+function setPill(gid, btn, fn) {
+  document.querySelectorAll(`#${gid} .pill`).forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); fn();
+}
+
+// ── Upload ────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) processFile(f);
+  else showToast('Please drop an image file','error');
+}
+function loadFile(e) { if (e.target.files[0]) processFile(e.target.files[0]); }
+
+function processFile(file) {
+  if (file.size > 10*1024*1024) { showToast('Max 10MB','error'); return; }
+  state.origFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.origDataUrl = e.target.result;
+    const img = new Image();
+    img.onload = () => {
+      state.origDims = { w:img.width, h:img.height };
+      document.getElementById('origImg').src = state.origDataUrl;
+      document.getElementById('origStats').innerHTML =
+        `<span class="stat-chip">${img.width}×${img.height}</span>
+         <span class="stat-chip">${(file.size/1024).toFixed(0)}KB</span>`;
+      document.getElementById('workspace').classList.add('visible');
+      document.getElementById('uploadZone').style.display = 'none';
+      updateButtons();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Reset ─────────────────────────────────────────────────
+function resetApp() {
+  state.origFile=null; state.origDataUrl=null; state.resultDataUrl=null;
+  document.getElementById('uploadZone').style.display='block';
+  document.getElementById('workspace').classList.remove('visible');
+  document.getElementById('analysisPanel').classList.remove('visible');
+  document.getElementById('logPanel').classList.remove('visible');
+  document.getElementById('dlBtn').style.display='none';
+  document.getElementById('logBody').innerHTML='';
+  document.getElementById('resultStats').innerHTML='';
+  document.getElementById('resultContainer').innerHTML=
+    `<div class="empty-msg">Result will appear here</div>
+     <div class="proc-overlay" id="procOverlay">
+       <div class="spinner"></div>
+       <div class="proc-step" id="procStep">Analyzing…</div>
+       <div class="proc-sub" id="procSub">Gemini Vision</div>
+     </div>`;
+  document.getElementById('fileInput').value='';
+  updateButtons();
+}
+
+// ── Log ───────────────────────────────────────────────────
+function log(msg, type='info') {
+  document.getElementById('logPanel').classList.add('visible');
+  const body = document.getElementById('logBody');
+  const t = new Date().toLocaleTimeString('en',{hour12:false});
+  const d = document.createElement('div');
+  d.className='log-entry';
+  d.innerHTML=`<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function setStep(s,sub='') {
+  const a=document.getElementById('procStep'), b=document.getElementById('procSub');
+  if(a) a.textContent=s; if(b) b.textContent=sub;
+}
+
+// ── Analyze only ──────────────────────────────────────────
+async function analyzeOnly() {
+  if (!state.model || !state.origDataUrl) return;
+  log('Starting analysis…','info');
+  try { await callGemini(); showToast('Analysis done!','success'); }
+  catch(e) { log('✗ '+e.message,'error'); showToast(e.message,'error'); }
+}
+
+// ── Main upscale ──────────────────────────────────────────
+async function startUpscale() {
+  if (!state.model || !state.origDataUrl) return;
+  document.getElementById('upscaleBtn').disabled=true;
+  document.getElementById('analyzeBtn').disabled=true;
+  document.getElementById('procOverlay').classList.add('active');
+  log('Connecting to Gemini 1.5 Flash…','info');
+  setStep('Analyzing image…','Gemini Vision scanning');
+
+  try {
+    const analysis = await callGemini();
+    log('✓ Analysis complete','success');
+    setStep('Upscaling…',`${state.scale}× — ${state.quality}`);
+    await sleep(200);
+    log(`${state.origDims.w}×${state.origDims.h} → ${state.origDims.w*state.scale}×${state.origDims.h*state.scale}`,'info');
+
+    const result = await upscaleCanvas(state.origDataUrl, analysis);
+    state.resultDataUrl = result;
+    setStep('Done!','');
+    await sleep(150);
+
+    const cont = document.getElementById('resultContainer');
+    cont.innerHTML=`<img src="${result}" alt="Enhanced">
+      <div class="proc-overlay" id="procOverlay">
+        <div class="spinner"></div>
+        <div class="proc-step" id="procStep"></div>
+        <div class="proc-sub" id="procSub"></div>
+      </div>`;
+
+    const nw=state.origDims.w*state.scale, nh=state.origDims.h*state.scale;
+    document.getElementById('resultStats').innerHTML=
+      `<span class="stat-chip purple">${nw}×${nh}</span>
+       <span class="stat-chip green">+${((nw*nh)/(state.origDims.w*state.origDims.h)).toFixed(0)}× pixels</span>`;
+    document.getElementById('dlBtn').style.display='inline-flex';
+    log(`✓ Ready: ${nw}×${nh}`,'success');
+    showToast('Upscale complete!','success');
+
+  } catch(e) {
+    log('✗ '+e.message,'error');
+    showToast(e.message,'error');
+    const ov=document.getElementById('procOverlay');
+    if(ov) ov.classList.remove('active');
+  }
+  document.getElementById('upscaleBtn').disabled=false;
+  document.getElementById('analyzeBtn').disabled=false;
+}
+
+// ── Gemini call via SDK ───────────────────────────────────
+async function callGemini() {
+  const base64 = state.origDataUrl.split(',')[1];
+  const mime   = state.origDataUrl.split(';')[0].split(':')[1];
+
+  const modeHint = {
+    auto:'Auto-detect the best upscaling strategy.',
+    photo:'This is a photo. Focus on natural detail, skin tones, realistic textures.',
+    design:'This is a design or logo. Prioritize sharp edges, clean lines, accurate colors.',
+    illustration:'This is an illustration. Preserve art style, line work, and color palette.'
+  }[state.mode];
+
+  const prompt = `You are a professional image analysis AI. ${modeHint}
+Analyze this image. Return ONLY a raw JSON object, no markdown, no backticks, no explanation:
+{"imageType":"photo|design|illustration|other","qualityScore":0-100,"mainSubject":"short description","issues":["issue1","issue2"],"enhancements":["enh1","enh2"],"colorProfile":"warm|cool|neutral|vibrant","upscaleStrategy":"brief strategy for ${state.scale}x upscale","summary":"2-3 sentence expert assessment"}`;
+
+  const imagePart = { inlineData: { data: base64, mimeType: mime } };
+  const result = await state.model.generateContent([prompt, imagePart]);
+  let txt = result.response.text().replace(/```json|```/g,'').trim();
+
+  let analysis = {};
+  try { analysis = JSON.parse(txt); } catch(e) { analysis = { summary: txt, qualityScore: 70 }; }
+  renderAnalysis(analysis);
+  return analysis;
+}
+
+// ── Render analysis ───────────────────────────────────────
+function renderAnalysis(a) {
+  document.getElementById('analysisPanel').classList.add('visible');
+  const sc = a.qualityScore>=80?'good':a.qualityScore>=50?'warn':'';
+  document.getElementById('analysisGrid').innerHTML=`
+    <div class="analysis-item"><div class="ai-label">Type</div><div class="ai-value">${cap(a.imageType||'Auto')}</div></div>
+    <div class="analysis-item">
+      <div class="ai-label">Quality</div>
+      <div class="ai-value ${sc}">${a.qualityScore||'—'}/100</div>
+      <div class="quality-meter"><div class="q-bar"><div class="q-fill" style="width:${a.qualityScore||0}%"></div></div><div class="q-val">${a.qualityScore||0}%</div></div>
+    </div>
+    <div class="analysis-item"><div class="ai-label">Color</div><div class="ai-value">${cap(a.colorProfile||'—')}</div></div>
+    <div class="analysis-item"><div class="ai-label">Subject</div><div class="ai-value" style="font-size:11px">${a.mainSubject||'—'}</div></div>
+    ${a.issues?.length?`<div class="analysis-item"><div class="ai-label">Issues</div><div class="ai-value warn" style="font-size:11px">${a.issues.slice(0,2).join(', ')}</div></div>`:''}
+    ${a.enhancements?.length?`<div class="analysis-item"><div class="ai-label">Enhancements</div><div class="ai-value" style="font-size:11px">${a.enhancements.slice(0,2).join(', ')}</div></div>`:''}
+  `;
+  document.getElementById('aiDesc').textContent = a.summary||a.upscaleStrategy||'';
+}
+
+// ── Canvas upscale ────────────────────────────────────────
+function upscaleCanvas(dataUrl, analysis) {
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = () => {
+      const sw=img.width*state.scale, sh=img.height*state.scale;
+      const canvas=document.createElement('canvas');
+      canvas.width=sw; canvas.height=sh;
+      const ctx=canvas.getContext('2d');
+
+      let cur=document.createElement('canvas');
+      cur.width=img.width; cur.height=img.height;
+      cur.getContext('2d').drawImage(img,0,0);
+
+      let factor=state.scale;
+      while(factor>1) {
+        const s=Math.min(2,factor);
+        const nw=Math.round(cur.width*s), nh=Math.round(cur.height*s);
+        const tmp=document.createElement('canvas');
+        tmp.width=nw; tmp.height=nh;
+        const tc=tmp.getContext('2d');
+        tc.imageSmoothingEnabled=true; tc.imageSmoothingQuality='high';
+        tc.drawImage(cur,0,0,nw,nh);
+        cur=tmp; factor/=s;
+      }
+
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+      ctx.drawImage(cur,0,0,sw,sh);
+      sharpen(ctx,sw,sh,analysis);
+
+      const fmt=document.getElementById('outputFmt').value;
+      const q=state.quality==='max'?1.0:state.quality==='balanced'?0.92:0.85;
+      const mime=fmt==='jpeg'?'image/jpeg':fmt==='webp'?'image/webp':'image/png';
+      resolve(canvas.toDataURL(mime,q));
+    };
+    img.onerror=reject; img.src=dataUrl;
+  });
+}
+
+function sharpen(ctx,w,h,analysis) {
+  const d=ctx.getImageData(0,0,w,h), px=d.data;
+  const isDesign=analysis?.imageType==='design'||state.mode==='design';
+  const k=isDesign?[0,-1,0,-1,5,-1,0,-1,0]:[0,-.4,0,-.4,2.6,-.4,0,-.4,0];
+  const orig=new Uint8ClampedArray(px);
+  for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++) for(let c=0;c<3;c++){
+    let v=0;
+    for(let ky=-1;ky<=1;ky++) for(let kx=-1;kx<=1;kx++)
+      v+=orig[((y+ky)*w+(x+kx))*4+c]*k[(ky+1)*3+(kx+1)];
+    px[(y*w+x)*4+c]=Math.max(0,Math.min(255,v));
+  }
+  ctx.putImageData(d,0,0);
+}
+
+// ── Download ──────────────────────────────────────────────
+function downloadResult() {
+  if (!state.resultDataUrl) return;
+  const fmt=document.getElementById('outputFmt').value;
+  const name=(state.origFile?.name?.replace(/\.[^.]+$/,'')||'upscaled')+`_${state.scale}x.${fmt}`;
+  const a=document.createElement('a'); a.href=state.resultDataUrl; a.download=name; a.click();
+  showToast('Downloaded: '+name,'success');
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function showToast(msg,type='info') {
+  const t=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent=type==='success'?'✓':type==='error'?'✗':'ℹ';
+  document.getElementById('toastMsg').textContent=msg;
+  t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+</script>
+</body>
+</html>
